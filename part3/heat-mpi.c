@@ -102,21 +102,19 @@ if (myid == 0) {
     for (int i=0; i<numprocs; i++) {
         if (i>0) {
                 MPI_Send(&param.maxiter, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
-                MPI_Send(&cols, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
                 MPI_Send(&np, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
+                MPI_Send(&cols, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
                 MPI_Send(&param.algorithm, 1, MPI_INT, i, 0, MPI_COMM_WORLD);
                 printf("Master- Num columns = %d\n",np );
                 printf("Master- Num rows = %d\n",cols );
 		        MPI_Send(&param.u[i*(cols_to_compute* np)], (cols * np), MPI_DOUBLE, i, 2, MPI_COMM_WORLD);
-                MPI_Send(&param.uhelp[0], (np)*(np), MPI_DOUBLE, i, 3, MPI_COMM_WORLD);
+                //MPI_Send(&param.uhelp[0], (np)*(np), MPI_DOUBLE, i, 3, MPI_COMM_WORLD);
                 printf("Sending work to workers...\n");
        
 	    }
     }
 
-    for(int i =0; i< sizeof(param.u)*sizeof(param.u[0]); i ++){
-        printf(" %f",param.u[i]);
-    }
+
     iter = 0;
     while(1) {
 	switch( param.algorithm ) {
@@ -131,7 +129,7 @@ if (myid == 0) {
 		    residual = relax_redblack(param.u, np, np);
 		    break;
 	    case 2: // GAUSS
-		    residual = relax_gauss(param.u, np, np,myid,numprocs);
+		    residual = relax_gauss(param.u, np, cols,myid,numprocs);
 		    break;
 	    }
 
@@ -143,9 +141,9 @@ if (myid == 0) {
         // max. iteration reached ? (no limit with maxiter=0)
         if (param.maxiter>0 && iter>=param.maxiter) break;
     }
-    for (int i=0; i<1; i++) {
-       // MPI_Recv(&param.u[i*((np)*(np))/numprocs], ((np)*(np))/numprocs, MPI_DOUBLE, i,0, MPI_COMM_WORLD,&status );
-    }
+    //for (int i=1; i<=1; i++) {
+    //   MPI_Recv(&param.u[i*((np)*(np))/numprocs], ((np)*(np))/numprocs, MPI_DOUBLE, i,0, MPI_COMM_WORLD,&status );
+    //}
 
     // Flop count after iter iterations
     flop = iter * 11.0 * param.resolution * param.resolution;
@@ -204,16 +202,16 @@ if (myid == 0) {
     
     // fill initial values for matrix with values received from master
     MPI_Recv(&u[0], (rows*columns), MPI_DOUBLE, 0, 2, MPI_COMM_WORLD, &status);
-    for(int i =0; i< rows * columns; i ++){
-        printf(" %f",u[i]);
-    }
+    //for(int i =0; i< rows * columns; i ++){
+    //    printf(" %f",u[i]);
+    //}
     //MPI_Recv(&uhelp[0], (rows+2)*(columns+2), MPI_DOUBLE, 0, 3, MPI_COMM_WORLD, &status);
     printf("Work recieved again...\n");
     iter = 0;
     while(1) {
 	switch( algorithm ) {
 	    case 0: // JACOBI
-	            residual = relax_jacobi(u, uhelp, np, np);
+	        residual = relax_jacobi(u, uhelp, np, np);
 		    // Copy uhelp into u
 		    for (int i=0; i<np; i++)
     		        for (int j=0; j<np; j++)
@@ -223,7 +221,7 @@ if (myid == 0) {
 		    residual = relax_redblack(u, np, np);
 		    break;
 	    case 2: // GAUSS
-		    residual = relax_gauss(u, np, np,myid,numprocs);
+		    residual = relax_gauss(u, rows, columns,myid,numprocs);
 		    break;
 	    }
 
