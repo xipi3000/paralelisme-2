@@ -82,14 +82,14 @@ double relax_redblack (double *u, unsigned sizex, unsigned sizey)
  */
 double relax_gauss (double *u, unsigned sizex, unsigned sizey, int rank, int numproc)
 {
-    printf("Una mica de guass eo no\n");
+
     double unew, diff, sum=0.0;
     int nbx, bx;
     MPI_Status status;
 
     nbx = NB;
     bx = sizex/nbx;
-    //printf("\nsizex: %d, sizey %d,nbx %d, rank %d, numprocs%d \n",sizex, sizey,nbx,rank,numproc);
+    printf("\nsizex: %d, sizey %d,nbx %d, rank %d, numprocs%d \n",sizex, sizey,nbx,rank,numproc);
     //Strip mining
     //for(int i =0; i< sizex * sizey; i ++){
     //    printf(" %f",u[i]);
@@ -98,40 +98,39 @@ double relax_gauss (double *u, unsigned sizex, unsigned sizey, int rank, int num
     for (int ii=0; ii<nbx; ii++){
         //printf("\nRANK %d\n",rank);
         if(rank!=0){
-            MPI_Recv(&u[0], sizex, MPI_DOUBLE, rank-1,0, MPI_COMM_WORLD,&status);
+            MPI_Recv(&u[0], sizex, MPI_DOUBLE, rank-1,0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
             //printf("Recieved\n");
-            for(int i =0; i< sizex; i ++){
+            //for(int i =0; i< sizex; i ++){
                 //printf(" %f",u[i]);
-            }
+            //}
         }
-
-        for (int i=1+ii*bx; i<=min((ii+1)*bx, sizex-2); i++) {
-            for (int j=1; j<= sizey-2; j++) {
-            unew= 0.25 * (    u[ i*sizey	+ (j-1) ]+  // left
-                    u[ i*sizey	+ (j+1) ]+  // right
-                    u[ (i-1)*sizey	+ j     ]+  // top
-                    u[ (i+1)*sizey	+ j     ]); // bottom
-            diff = unew - u[i*sizey+ j];
+        for (int j=1; j<= sizey-2; j++) {
+            for (int i=1+ii*bx; i<=min((ii+1)*bx, sizex-2); i++) {
+            
+            unew= 0.25 * (    u[ i*sizex	+ (j-1) ]+  // left
+                    u[ i*sizex	+ (j+1) ]+  // right
+                    u[ (i-1)*sizex	+ j     ]+  // top
+                    u[ (i+1)*sizex	+ j     ]); // bottom
+            diff = unew - u[i*sizex+ j];
             sum += diff * diff; 
             //printf("left=%f,right= %f,top=%f,bottom= %f,res = %f ",u[ i*sizey	+ (j-1) ],u[ i*sizey	+ (j+1) ],u[ (i-1)*sizey	+ j], u[ (i+1)*sizey	+ j     ], unew);
-            u[i*sizey+j]=unew;
+            u[i*sizex+j]=unew;
+            //printf("%f ",unew);
             }
             //printf("\n");
         }
         if(rank!=numproc-1){
             //printf("Sending: \n");
-            for(int i =0; i< sizex; i ++){
+            //for(int i =0; i< sizex; i ++){
               //  printf(" %f",u[(sizey-2)*sizex+i]);
-             }
+            // }
             MPI_Send(&u[(sizey-2)*sizex], sizex, MPI_DOUBLE, rank+1,0, MPI_COMM_WORLD );
-            
         }
-
     }
     //for(int i =0; i< sizey * bx; i ++){
     //    printf(" %f",u[i]);
     //}
-    //MPI_Send(&u[0], by*sizex, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+    //if(rank!=0){
     return sum;
 }
 
