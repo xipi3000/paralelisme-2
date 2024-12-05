@@ -80,7 +80,7 @@ double relax_redblack (double *u, unsigned sizex, unsigned sizey)
 /*
  * Blocked Gauss-Seidel solver: one iteration step
  */
-double relax_gauss (double *u, unsigned sizex, unsigned sizey, int rank, int numproc)
+double relax_gauss_1 (double *u, unsigned sizex, unsigned sizey, int rank, int numproc)
 {
 
     double unew, diff, sum=0.0;
@@ -134,3 +134,34 @@ double relax_gauss (double *u, unsigned sizex, unsigned sizey, int rank, int num
     return sum;
 }
 
+double relax_gauss (double *u, unsigned sizex, unsigned sizey, int rank, int numproc)
+{
+    double unew, diff, sum=0.0;
+    int nbx, bx, nby, by;
+
+    nby = NB;
+    by = sizey/nby;
+    for (int jj=0; jj<nby; jj++) {
+        if(rank!=0){
+            MPI_Recv(&u[0], sizey, MPI_DOUBLE, rank-1,0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+        }
+        for (int i=1; i<=sizex-2; i++) {
+            for (int j=1+jj*by; j<=min((jj+1)*by, sizey-2); j++) {
+            unew= 0.25 * (    u[ i*sizey	+ (j-1) ]+  // left
+                    u[ i*sizey	+ (j+1) ]+  // right
+                    u[ (i-1)*sizey	+ j     ]+  // top
+                    u[ (i+1)*sizey	+ j     ]); // bottom
+            diff = unew - u[i*sizey+ j];
+            sum += diff * diff; 
+            u[i*sizey+j]=unew;
+            }
+        }
+        if(rank!=numproc-1){
+            MPI_Send(&u[(sizex-2)*sizey], sizey, MPI_DOUBLE, rank+1,0, MPI_COMM_WORLD );
+        }
+
+    }
+    double sum_reduced;
+    MPI_Allreduce(&sum, &sum_reduced, 1, MPI_DOUBLE, MPI_SUM,MPI_COMM_WORLD);
+    return sum_reduced;
+}

@@ -97,7 +97,7 @@ if (myid == 0) {
     unsigned last_rows = (param.resolution - num_rows_to_compute * (numprocs-1))+2;
     //printf("num_rows= %u, rows_comp = %u ,last_rows = %u,numprocs = %i\n",num_rows,num_rows_to_compute,last_rows,numprocs);
     //for (int i = 0; i <(sizeof(param.u)*sizeof(param.u)); i++) {
-    //param.u[i] = (double)(i + 1);
+    //param.u[i] = (double)(255);
     //}
 
     // send to workers the necessary data to perform computation
@@ -143,30 +143,34 @@ if (myid == 0) {
 		    residual = relax_redblack(param.u, np, np);
 		    break;
 	    case 2: // GAUSS
-		    residual = relax_gauss(param.u, np, num_rows,myid,numprocs);
+		    residual = relax_gauss(param.u, num_rows, np,myid,numprocs);
 		    break;
 	    }
 
         iter++;
+        int next_cell= (num_rows_to_compute+1)* np;
+        for (int i=1; i<numprocs-1; i++) {
+            //printf("\nRecv from: %i\n ",i);
+            MPI_Recv(&param.u[next_cell], (num_rows_to_compute* np), MPI_DOUBLE, i,5, MPI_COMM_WORLD,&status );
+            // printf("\nNext cell : %i\n ",next_cell);
+            next_cell += num_rows_to_compute* np;
+        }
+        MPI_Recv(&param.u[next_cell], ((last_rows-2)* np), MPI_DOUBLE, numprocs-1,5, MPI_COMM_WORLD,&status );
 
         // solution good enough ?
         if (residual < 0.00005) break;
 
         // max. iteration reached ? (no limit with maxiter=0)
         if (param.maxiter>0 && iter>=param.maxiter) break;
+
+        
     }
     //for (int i = (num_rows_to_compute+1)*np; i <(sizeof(param.u)*sizeof(param.u)); i++) {
     //    param.u[i] = (double)(1);
      //   printf("%f ",param.u[i]);
     //}
-    int next_cell= (num_rows_to_compute+1)* np;
-    for (int i=1; i<numprocs-1; i++) {
-        //printf("\nRecv from: %i\n ",i);
-        MPI_Recv(&param.u[next_cell], (num_rows_to_compute* np), MPI_DOUBLE, i,0, MPI_COMM_WORLD,&status );
-        // printf("\nNext cell : %i\n ",next_cell);
-        next_cell += num_rows_to_compute* np;
-    }
-    MPI_Recv(&param.u[next_cell], ((last_rows-2)* np), MPI_DOUBLE, numprocs-1,0, MPI_COMM_WORLD,&status );
+    
+    
 
 
    // MPI_Reduce(&residual, &residual, 1, MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
@@ -251,12 +255,12 @@ if (myid == 0) {
 		    residual = relax_redblack(u, np, np);
 		    break;
 	    case 2: // GAUSS
-		    residual = relax_gauss(u, columns, rows,myid,numprocs);
+		    residual = relax_gauss(u, rows,columns,myid,numprocs);
 		    break;
 	    }
 
         iter++;
-
+        MPI_Send(&u[columns], (rows-2)*columns, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
         // solution good enough ?
         if (residual < 0.00005){
             printf("Residual\n");
@@ -266,8 +270,9 @@ if (myid == 0) {
         if (maxiter>0 && iter>=maxiter) {
             printf("maxiter\n");
             break;}
+        
     }
-    MPI_Send(&u[columns], (rows-2)*columns, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+    
     //double global_sum;
     //MPI_Reduce(&residual, &global_sum, 1, MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
     if( u ) free(u); 
