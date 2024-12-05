@@ -148,14 +148,9 @@ if (myid == 0) {
 	    }
 
         iter++;
-        int next_cell= (num_rows_to_compute+1)* np;
-        for (int i=1; i<numprocs-1; i++) {
-            //printf("\nRecv from: %i\n ",i);
-            MPI_Recv(&param.u[next_cell], (num_rows_to_compute* np), MPI_DOUBLE, i,5, MPI_COMM_WORLD,&status );
-            // printf("\nNext cell : %i\n ",next_cell);
-            next_cell += num_rows_to_compute* np;
-        }
-        MPI_Recv(&param.u[next_cell], ((last_rows-2)* np), MPI_DOUBLE, numprocs-1,5, MPI_COMM_WORLD,&status );
+
+        
+        MPI_Recv(&param.u[(num_rows_to_compute+1)* np], np, MPI_DOUBLE, 1,0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
 
         // solution good enough ?
         if (residual < 0.00005) break;
@@ -169,7 +164,15 @@ if (myid == 0) {
     //    param.u[i] = (double)(1);
      //   printf("%f ",param.u[i]);
     //}
-    
+    int next_cell= (num_rows_to_compute+1)* np;
+        for (int i=1; i<numprocs-1; i++) {
+            //printf("\nRecv from: %i\n ",i);
+            MPI_Recv(&param.u[next_cell], (num_rows_to_compute* np), MPI_DOUBLE, i,5, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+            // printf("\nNext cell : %i\n ",next_cell);
+            next_cell += num_rows_to_compute* np;
+        }
+        MPI_Recv(&param.u[next_cell], ((last_rows-2)* np), MPI_DOUBLE, numprocs-1,5, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+
     
 
 
@@ -260,7 +263,8 @@ if (myid == 0) {
 	    }
 
         iter++;
-        MPI_Send(&u[columns], (rows-2)*columns, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
+        MPI_Send(&u[columns], columns, MPI_DOUBLE, myid-1, 0, MPI_COMM_WORLD);
+        if(myid!=numprocs-1)MPI_Recv(&u[(rows-1)*columns], columns, MPI_DOUBLE, myid+1, 0, MPI_COMM_WORLD,MPI_STATUS_IGNORE);
         // solution good enough ?
         if (residual < 0.00005){
             printf("Residual\n");
@@ -272,7 +276,7 @@ if (myid == 0) {
             break;}
         
     }
-    
+    MPI_Send(&u[columns], (rows-2)*columns, MPI_DOUBLE, 0, 5, MPI_COMM_WORLD);
     //double global_sum;
     //MPI_Reduce(&residual, &global_sum, 1, MPI_DOUBLE, MPI_SUM, 0,MPI_COMM_WORLD);
     if( u ) free(u); 
