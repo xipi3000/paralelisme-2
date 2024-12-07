@@ -17,7 +17,7 @@
 #SBATCH -p cuda
 #SBATCH --gres=gpu:4
 
-export PATH=/Soft/cuda/11.2.1/bin:$PATH
+export PATH=/usr/local/cuda-12.6/bin:$PATH
 
 KERNEL=heat-CUDA
 

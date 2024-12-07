@@ -216,10 +216,20 @@ int main( int argc, char *argv[] ) {
 
     // TODO: Allocation on GPU for matrices u and uhelp
     //...
+    cudaMalloc( &dev_u, np*np * sizeof(double) );
+    cudaMalloc( &dev_uhelp, np*np * sizeof(double) );
+
+    
+
 
     // TODO: Copy initial values in u and uhelp from host to GPU
     //...
-
+    cudaMemcpy( dev_u, param.u, np*np * sizeof(double), cudaMemcpyHostToDevice );
+    cudaMemcpy( dev_uhelp, param.uhelp, np*np * sizeof(double), cudaMemcpyHostToDevice );
+    //for (int i = 0; i <(sizeof(param.u)*sizeof(param.u)); i++) {
+        
+    //    printf("%f ",param.u[i]);
+    //}
     iter = 0;
     while(1) {
         gpu_Heat<<<Grid,Block>>>(dev_u, dev_uhelp, np);
@@ -227,11 +237,15 @@ int main( int argc, char *argv[] ) {
 
         // TODO: residual is computed on host, we need to get from GPU values computed in u and uhelp
         //...
-	residual = cpu_residual (param.u, param.uhelp, np, np);
 
-	float * tmp = dev_u;
-	dev_u = dev_uhelp;
-	dev_uhelp = tmp;
+        cudaMemcpy( param.u, dev_u , np*np * sizeof(double), cudaMemcpyDeviceToHost );
+        cudaMemcpy( param.uhelp, dev_uhelp, np*np * sizeof(double), cudaMemcpyDeviceToHost );
+
+        residual = cpu_residual (param.u, param.uhelp, np, np);
+
+        float * tmp = dev_u;
+        dev_u = dev_uhelp;
+        dev_uhelp = tmp;
 
         iter++;
 
@@ -244,9 +258,14 @@ int main( int argc, char *argv[] ) {
 
     // TODO: get result matrix from GPU
     //...
-
+    cudaMemcpy( param.u, dev_u , np*np * sizeof(double), cudaMemcpyDeviceToHost );
+    cudaMemcpy( param.uhelp, dev_uhelp, np*np * sizeof(double), cudaMemcpyDeviceToHost );
+  
     // TODO: free memory used in GPU
     //...
+    cudaFree( dev_u );  
+    cudaFree( dev_uhelp );
+
 
     cudaEventRecord( stop, 0 );     // instrument code to measue end time
     cudaEventSynchronize( stop );

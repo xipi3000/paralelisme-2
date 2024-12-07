@@ -1,4 +1,4 @@
-CUDA_HOME   = /Soft/cuda/11.2.1
+CUDA_HOME   = /usr/local/cuda-12.6
 
 NVCC        = $(CUDA_HOME)/bin/nvcc
 NVCC_FLAGS  = -O3 -Wno-deprecated-gpu-targets -I$(CUDA_HOME)/include -arch=compute_35 --ptxas-options=-v -I$(CUDA_HOME)/sdk/CUDALibraries/common/inc
