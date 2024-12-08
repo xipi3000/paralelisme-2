@@ -216,9 +216,19 @@ int main( int argc, char *argv[] ) {
 
     // TODO: Allocation on GPU for matrices u and uhelp
     //...
-    cudaMalloc( &dev_u, np*np * sizeof(double) );
-    cudaMalloc( &dev_uhelp, np*np * sizeof(double) );
+    cudaError_t err;
 
+    err = cudaMalloc(&dev_u, np * np * sizeof(double));
+    if (err != cudaSuccess) {
+        printf("CUDA malloc for dev_u failed: %s\n", cudaGetErrorString(err));
+        return 1;
+    }
+
+    err = cudaMalloc(&dev_uhelp, np * np * sizeof(double));
+    if (err != cudaSuccess) {
+        printf("CUDA malloc for dev_uhelp failed: %s\n", cudaGetErrorString(err));
+        return 1;
+    }
     
 
 
