@@ -219,7 +219,10 @@ int main( int argc, char *argv[] ) {
     cudaMalloc( &dev_u, np*np * sizeof(double) );
     cudaMalloc( &dev_uhelp, np*np * sizeof(double) );
 
-    
+    for (int i = 0; i <(sizeof(param.u)*sizeof(param.u)); i++) {
+     //  param.u[i] = (double)(255);
+    }
+
 
 
     // TODO: Copy initial values in u and uhelp from host to GPU
@@ -232,7 +235,7 @@ int main( int argc, char *argv[] ) {
     //}
     iter = 0;
     while(1) {
-        gpu_Heat<<<Grid,Block,NB>>>(dev_u, dev_uhelp, np);
+        gpu_Heat<<<Grid,Block>>>(dev_u, dev_uhelp, np);
         cudaDeviceSynchronize();  // Wait for compute device to finish.
 
         // TODO: residual is computed on host, we need to get from GPU values computed in u and uhelp
